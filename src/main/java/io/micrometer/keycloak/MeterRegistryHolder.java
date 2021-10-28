@@ -15,7 +15,9 @@
  */
 package io.micrometer.keycloak;
 
+import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
@@ -24,14 +26,46 @@ import io.micrometer.core.instrument.binder.system.FileDescriptorMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.core.instrument.binder.system.UptimeMetrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.micrometer.prometheus.PrometheusConfig;
-import io.micrometer.prometheus.PrometheusMeterRegistry;
+import io.micrometer.statsd.StatsdConfig;
+import io.micrometer.statsd.StatsdFlavor;
+import io.micrometer.statsd.StatsdMeterRegistry;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class MeterRegistryHolder {
     private static boolean isTest = false;
     private final MeterRegistry testMeterRegistry = new SimpleMeterRegistry();
 
-    private final PrometheusMeterRegistry prometheusMeterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+    StatsdConfig statsdConfig = new StatsdConfig() {
+        @Override
+        public boolean enabled() {
+            return Boolean.parseBoolean(System.getenv().getOrDefault("MONITORING_ENABLED", "false"));
+        }
+
+        @Override
+        public String get(String key) {
+            return null;
+        }
+
+        @Override
+        public String host() {
+            return System.getenv().getOrDefault("STATSD_HOST", "localhost");
+        }
+
+        @Override
+        public int port() {
+            return Integer.parseInt(System.getenv().getOrDefault("STATSD_PORT", "8125"));
+        }
+
+        @Override
+        public StatsdFlavor flavor() {
+            return StatsdFlavor.DATADOG;
+        }
+    };
+
+    private final StatsdMeterRegistry statsdMeterRegistry = new StatsdMeterRegistry(statsdConfig, Clock.SYSTEM);
+
     private final static MeterRegistryHolder INSTANCE = new MeterRegistryHolder();
 
     private MeterRegistryHolder() {
@@ -43,6 +77,12 @@ public class MeterRegistryHolder {
         new FileDescriptorMetrics().bindTo(meterRegistry);
         new ClassLoaderMetrics().bindTo(meterRegistry);
         new UptimeMetrics().bindTo(meterRegistry);
+        List<Tag> commonTags = Arrays.asList(
+                Tag.of("Owner", System.getenv().getOrDefault("OWNER", "UNKNOWN_OWNER")),
+                Tag.of("Environment", System.getenv().getOrDefault("METRIC_ENVIRONMENT", "UNKNOWN_ENV")),
+                Tag.of("Service", System.getenv().getOrDefault("SERVICE_NAME", "UNKNOWN_SERVICE_NAME"))
+        );
+        meterRegistry.config().commonTags(commonTags);
     }
 
     public static MeterRegistryHolder getInstance() {
@@ -59,10 +99,7 @@ public class MeterRegistryHolder {
      * to which metrics will be published.
      */
     public MeterRegistry getMeterRegistry() {
-        return isTest ? testMeterRegistry : prometheusMeterRegistry;
+        return isTest ? testMeterRegistry : statsdMeterRegistry;
     }
-
-    public PrometheusMeterRegistry getPrometheusMeterRegistry() {
-        return prometheusMeterRegistry;
-    }
+    
 }

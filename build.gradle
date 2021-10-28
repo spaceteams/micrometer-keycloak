@@ -29,7 +29,7 @@ repositories {
 
 dependencies {
     implementation 'io.micrometer:micrometer-core:latest.release'
-    implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
+    implementation "io.micrometer:micrometer-registry-statsd:latest.release"
 
     implementation 'org.keycloak:keycloak-server-spi-private:latest.release'
     implementation 'org.keycloak:keycloak-server-spi:latest.release'
@@ -54,8 +54,8 @@ contacts {
 }
 
 if (project.extensions.findByName('bintray')) {
-    bintray.labels = ['micrometer', 'metrics', 'prometheus', 'keycloak']
-    bintray.packageName = 'micrometer-keycloak'
+    bintray.labels = ['micrometer', 'metrics', 'statsd', 'keycloak']
+    bintray.packageName = 'micrometer-statsd-keycloak'
 }
 
 license {

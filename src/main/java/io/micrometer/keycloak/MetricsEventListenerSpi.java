@@ -28,7 +28,7 @@ public class MetricsEventListenerSpi extends EventListenerSpi {
 
     @Override
     public String getName() {
-        return "Prometheus Metrics Provider";
+        return "DataDog StatsD Metrics Provider";
     }
 
     @Override

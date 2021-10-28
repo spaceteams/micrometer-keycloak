@@ -32,7 +32,7 @@ class MicrometerKeycloakTest {
     private static final String CLIENT_ID = "THE_CLIENT_ID";
     private static final String IDENTITY_PROVIDER = "THE_ID_PROVIDER";
 
-    private MeterRegistry meterRegistry = MeterRegistryHolder.asTestHarness().getMeterRegistry();
+    private final MeterRegistry meterRegistry = MeterRegistryHolder.asTestHarness().getMeterRegistry();
 
     @BeforeEach
     void beforeEach() {

@@ -2,15 +2,11 @@
 
 Inspired by @aerogear's [Keycloak Metrics SPI](https://github.com/aerogear/keycloak-metrics-spi).
 
-A [Service Provider](https://www.keycloak.org/docs/4.8/server_development/index.html#_providers) that adds a metrics endpoint to Keycloak. The endpoint returns metrics data ready to be scraped by [Prometheus](https://prometheus.io/).
+A [Service Provider](https://www.keycloak.org/docs/4.8/server_development/index.html#_providers) that automatically publishes all metrics to StatsD using the DataDog flavor.
 
-Two distinct providers are defined:
+Defined providers:
 
 * `MetricsEventListener` to record the internal Keycloak events
-* `MetricsEndpoint` to expose the data through a custom endpoint
-
-The endpoint lives under `<url>/auth/realms/<realm>/metrics`. It will return data for all realms, no matter which realm
-you use in the URL (you can just default to `/auth/realms/master/metrics`).
 
 ## Usage
 
