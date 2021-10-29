@@ -34,6 +34,13 @@ public class MeterRegistryFacade {
 
     public MeterRegistryFacade(final MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
+        List<Tag> commonTags = Arrays.asList(
+                Tag.of("Owner", System.getenv().getOrDefault("OWNER", "UNKNOWN_OWNER")),
+                Tag.of("Environment", System.getenv().getOrDefault("METRIC_ENVIRONMENT", "UNKNOWN_ENV")),
+                Tag.of("Service", System.getenv().getOrDefault("SERVICE_NAME", "UNKNOWN_SERVICE_NAME"))
+        );
+        this.meterRegistry.config().commonTags(commonTags);
+
         new ProcessorMetrics().bindTo(this.meterRegistry);
         new JvmGcMetrics().bindTo(this.meterRegistry);
         new JvmMemoryMetrics().bindTo(this.meterRegistry);
@@ -41,12 +48,6 @@ public class MeterRegistryFacade {
         new FileDescriptorMetrics().bindTo(this.meterRegistry);
         new ClassLoaderMetrics().bindTo(this.meterRegistry);
         new UptimeMetrics().bindTo(this.meterRegistry);
-        List<Tag> commonTags = Arrays.asList(
-                Tag.of("Owner", System.getenv().getOrDefault("OWNER", "UNKNOWN_OWNER")),
-                Tag.of("Environment", System.getenv().getOrDefault("METRIC_ENVIRONMENT", "UNKNOWN_ENV")),
-                Tag.of("Service", System.getenv().getOrDefault("SERVICE_NAME", "UNKNOWN_SERVICE_NAME"))
-        );
-        this.meterRegistry.config().commonTags(commonTags);
     }
 
     public MeterRegistry getMeterRegistry() {

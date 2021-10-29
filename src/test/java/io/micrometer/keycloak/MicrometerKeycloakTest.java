@@ -23,6 +23,7 @@ import org.keycloak.events.admin.AdminEvent;
 import org.keycloak.events.admin.OperationType;
 import org.keycloak.events.admin.ResourceType;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 
@@ -41,9 +42,11 @@ class MicrometerKeycloakTest {
 
     @Test
     void shouldCorrectlyCountLoginWhenIdentityProviderIsDefined() {
+        updateEnv("OWNER", "TEST");
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(createEvent(EventType.LOGIN, IDENTITY_PROVIDER));
         listener.getMeterRegistry().get("keycloak.logins")
+                .tag("Owner", "TEST")
                 .tag("provider", IDENTITY_PROVIDER)
                 .tag("realm", DEFAULT_REALM)
                 .tag("client.id", CLIENT_ID)
@@ -101,9 +104,11 @@ class MicrometerKeycloakTest {
 
     @Test
     void shouldCorrectlyRecordJvmMetrics() {
+        updateEnv("OWNER", "TEST");
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(createEvent(EventType.UPDATE_EMAIL));
         listener.getMeterRegistry().get("jvm.memory.max")
+                .tag("Owner", "TEST")
                 .gauge();
     }
 
@@ -160,6 +165,23 @@ class MicrometerKeycloakTest {
 
     private Event createEvent(EventType type) {
         return createEvent(type, null, null);
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    public static void updateEnv(String name, String val){
+        Map<String, String> env = System.getenv();
+        Field field = null;
+        try {
+            field = env.getClass().getDeclaredField("m");
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+        field.setAccessible(true);
+        try {
+            ((Map<String, String>) field.get(env)).put(name, val);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
     }
 
 }
