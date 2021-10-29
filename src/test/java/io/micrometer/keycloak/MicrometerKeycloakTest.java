@@ -15,7 +15,6 @@
  */
 package io.micrometer.keycloak;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.keycloak.events.Event;
@@ -28,22 +27,23 @@ import java.util.Collections;
 import java.util.Map;
 
 class MicrometerKeycloakTest {
+
     private static final String DEFAULT_REALM = "myrealm";
     private static final String CLIENT_ID = "THE_CLIENT_ID";
     private static final String IDENTITY_PROVIDER = "THE_ID_PROVIDER";
 
-    private final MeterRegistry meterRegistry = MeterRegistryHolder.asTestHarness().getMeterRegistry();
+    private final MetricsEventListener listener = new MetricsEventListener();
 
     @BeforeEach
     void beforeEach() {
-        meterRegistry.clear();
+        this.listener.getMeterRegistry().clear();
     }
 
     @Test
     void shouldCorrectlyCountLoginWhenIdentityProviderIsDefined() {
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(createEvent(EventType.LOGIN, IDENTITY_PROVIDER));
-        meterRegistry.get("keycloak.logins")
+        listener.getMeterRegistry().get("keycloak.logins")
                 .tag("provider", IDENTITY_PROVIDER)
                 .tag("realm", DEFAULT_REALM)
                 .tag("client.id", CLIENT_ID)
@@ -55,7 +55,7 @@ class MicrometerKeycloakTest {
     void shouldCorrectlyCountLoginWhenIdentityProviderIsNotDefined() {
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(createEvent(EventType.LOGIN));
-        meterRegistry.get("keycloak.logins")
+        listener.getMeterRegistry().get("keycloak.logins")
                 .tag("provider", "keycloak")
                 .tag("realm", DEFAULT_REALM)
                 .tag("client.id", CLIENT_ID)
@@ -67,7 +67,7 @@ class MicrometerKeycloakTest {
     void shouldCorrectlyCountLoginError() {
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(createEvent(EventType.LOGIN_ERROR, IDENTITY_PROVIDER, "user_not_found"));
-        meterRegistry.get("keycloak.logins")
+        listener.getMeterRegistry().get("keycloak.logins")
                 .tag("provider", IDENTITY_PROVIDER)
                 .tag("realm", DEFAULT_REALM)
                 .tag("client.id", CLIENT_ID)
@@ -80,7 +80,7 @@ class MicrometerKeycloakTest {
     void shouldCorrectlyCountRegister() {
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(createEvent(EventType.REGISTER, IDENTITY_PROVIDER));
-        meterRegistry.get("keycloak.registrations")
+        listener.getMeterRegistry().get("keycloak.registrations")
                 .tag("provider", IDENTITY_PROVIDER)
                 .tag("realm", DEFAULT_REALM)
                 .tag("client.id", CLIENT_ID)
@@ -92,11 +92,19 @@ class MicrometerKeycloakTest {
     void shouldCorrectlyRecordGenericEvents() {
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(createEvent(EventType.UPDATE_EMAIL));
-        meterRegistry.get("keycloak.events")
+        listener.getMeterRegistry().get("keycloak.events")
                 .tag("realm", DEFAULT_REALM)
                 .tag("type", EventType.UPDATE_EMAIL.toString())
                 .tag("provider", "keycloak")
                 .counter();
+    }
+
+    @Test
+    void shouldCorrectlyRecordJvmMetrics() {
+        MetricsEventListener listener = new MetricsEventListener();
+        listener.onEvent(createEvent(EventType.UPDATE_EMAIL));
+        listener.getMeterRegistry().get("jvm.memory.max")
+                .gauge();
     }
 
     @Test
@@ -108,7 +116,7 @@ class MicrometerKeycloakTest {
 
         MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(event, true);
-        meterRegistry.get("keycloak.admin.events")
+        listener.getMeterRegistry().get("keycloak.admin.events")
                 .tag("realm", DEFAULT_REALM)
                 .tag("operation.type", OperationType.ACTION.toString())
                 .tag("resource.type", ResourceType.AUTHORIZATION_SCOPE.toString())
@@ -121,9 +129,8 @@ class MicrometerKeycloakTest {
         event.setType(EventType.CLIENT_DELETE);
         event.setRealmId(null);
 
-        MetricsEventListener listener = new MetricsEventListener();
         listener.onEvent(event);
-        meterRegistry.get("keycloak.events")
+        listener.getMeterRegistry().get("keycloak.events")
                 .tag("type", EventType.CLIENT_DELETE.toString())
                 .tag("realm", "unknown")
                 .counter();
@@ -154,4 +161,5 @@ class MicrometerKeycloakTest {
     private Event createEvent(EventType type) {
         return createEvent(type, null, null);
     }
+
 }

@@ -47,4 +47,5 @@ public class MetricsEventListenerFactory implements EventListenerProviderFactory
     public String getId() {
         return MetricsEventListener.ID;
     }
+
 }

@@ -18,29 +18,37 @@ package io.micrometer.keycloak;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.keycloak.provider.StatsdMeterRegistryProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventListenerProvider;
 import org.keycloak.events.admin.AdminEvent;
 
 public class MetricsEventListener implements EventListenerProvider {
-    public final static String ID = "metrics-listener";
 
+    public final static String ID = "metrics-listener";
     private final static String PROVIDER_KEYCLOAK_OPENID = "keycloak";
 
-    private final static MeterRegistry meterRegistry = MeterRegistryHolder.getInstance().getMeterRegistry();
+    private final MeterRegistryFacade meterRegistryFacade;
+
+    public MetricsEventListener() {
+        // We use StatsD, but could be interchanged here
+        final MeterRegistry statsdMeterRegistry = new StatsdMeterRegistryProvider().getMeterRegistry();
+
+        this.meterRegistryFacade = new MeterRegistryFacade(statsdMeterRegistry);
+    }
 
     @Override
     public void onEvent(Event event) {
         switch (event.getType()) {
             case LOGIN:
-                meterRegistry.counter("keycloak.logins", Tags.of(
+                meterRegistryFacade.getMeterRegistry().counter("keycloak.logins", Tags.of(
                         "realm", nullToUnknown(event.getRealmId()),
                         "client.id", nullToUnknown(event.getClientId()),
                         "status", "success"
                 ).and(getIdentityProviderAsTag(event))).increment();
                 break;
             case LOGIN_ERROR:
-                meterRegistry.counter("keycloak.logins", Tags.of(
+                meterRegistryFacade.getMeterRegistry().counter("keycloak.logins", Tags.of(
                         "realm", nullToUnknown(event.getRealmId()),
                         "client.id", nullToUnknown(event.getClientId()),
                         "error", event.getError(),
@@ -48,14 +56,14 @@ public class MetricsEventListener implements EventListenerProvider {
                 ).and(getIdentityProviderAsTag(event))).increment();
                 break;
             case REGISTER:
-                meterRegistry.counter("keycloak.registrations", Tags.of(
+                meterRegistryFacade.getMeterRegistry().counter("keycloak.registrations", Tags.of(
                         "realm", nullToUnknown(event.getRealmId()),
                         "client.id", nullToUnknown(event.getClientId()),
                         "status", "success"
                 ).and(getIdentityProviderAsTag(event))).increment();
                 break;
             case REGISTER_ERROR:
-                meterRegistry.counter("keycloak.registrations", Tags.of(
+                meterRegistryFacade.getMeterRegistry().counter("keycloak.registrations", Tags.of(
                         "realm", nullToUnknown(event.getRealmId()),
                         "client.id", nullToUnknown(event.getClientId()),
                         "error", event.getError(),
@@ -63,7 +71,7 @@ public class MetricsEventListener implements EventListenerProvider {
                 ).and(getIdentityProviderAsTag(event))).increment();
                 break;
             default:
-                meterRegistry.counter("keycloak.events", Tags.of(
+                meterRegistryFacade.getMeterRegistry().counter("keycloak.events", Tags.of(
                         Tag.of("realm", nullToUnknown(event.getRealmId())),
                         Tag.of("type", event.getType().toString()),
                         getIdentityProviderAsTag(event)
@@ -73,7 +81,7 @@ public class MetricsEventListener implements EventListenerProvider {
 
     @Override
     public void onEvent(AdminEvent event, boolean includeRepresentation) {
-        meterRegistry.counter("keycloak.admin.events", Tags.of(
+        meterRegistryFacade.getMeterRegistry().counter("keycloak.admin.events", Tags.of(
                 "realm", nullToUnknown(event.getRealmId()),
                 "operation.type", event.getOperationType().toString(),
                 "resource.type", nullToUnknown(event.getResourceTypeAsString())
@@ -107,4 +115,9 @@ public class MetricsEventListener implements EventListenerProvider {
     public void close() {
         // unused
     }
+
+    public MeterRegistry getMeterRegistry() {
+        return meterRegistryFacade.getMeterRegistry();
+    }
+
 }
