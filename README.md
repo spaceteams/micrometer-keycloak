@@ -1,6 +1,10 @@
 # Micrometer Keycloak SPI
 
-Inspired by @aerogear's [Keycloak Metrics SPI](https://github.com/aerogear/keycloak-metrics-spi).
+This is a fork from [micrometer-keycloak](https://github.com/micrometer-metrics/micrometer-keycloak)
+
+This has been adapted to work with StatsD and DataDog.
+
+---
 
 A [Service Provider](https://www.keycloak.org/docs/4.8/server_development/index.html#_providers) that automatically publishes all metrics to StatsD using the DataDog flavor.
 
@@ -10,12 +14,8 @@ Defined providers:
 
 ## Usage
 
-Add the jar into the _providers_ subdirectory of your Keycloak installation.
+Build the jar
+    
+    ./gradlew jar    
 
-To enable the event listener via the GUI interface, go to _Manage -> Events -> Config_. The _Event Listeners_ configuration should have an entry named `metrics-listener`.
-
-To enable the event listener via the Keycloak CLI, such as when building a Docker container, use these commands. (These commands assume /opt/jboss is the Keycloak home directory, which is used on the _jboss/keycloak_ reference container on Docker Hub.)
-
-    /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user $KEYCLOAK_USER --password $KEYCLOAK_PASSWORD
-    /opt/jboss/keycloak/bin/kcadm.sh update events/config -s "eventsEnabled=true" -s "adminEventsEnabled=true" -s "eventsListeners+=metrics-listener"
-    /usr/bin/rm -f /opt/jboss/.keycloak/kcadm.config
+Deploy to JBoss and activate metric listener in Keycloak
